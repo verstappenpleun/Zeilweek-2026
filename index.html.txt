@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CWO Kielboot Quiz</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .wave-path { fill: #60a5fa; opacity: 0.2; }
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            50% { transform: translateX(-25%); }
+            100% { transform: translateX(0); }
+        }
+        .animate-wave { animation: wave 20s linear infinite; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- DATA ---
+        const questions = [
+          { id: 1, level: 'KB II', question: 'Wie is aan boord altijd verantwoordelijk voor het naleven van de regels?', answer: 'De schipper (ook als hij niet zelf stuurt).', category: 'REGELS', distractors: ['De oudste aan boord', 'Diegene die achter het roer zit', 'De eigenaar van de boot'] },
+          { id: 2, level: 'KB II', question: 'Wat is de minimumleeftijd voor het besturen van een open motorboot die sneller kan varen dan 13 km/u?', answer: '12 jaar (voor een open boot < 7m).', category: 'LEEFTIJD', distractors: ['16 jaar', '18 jaar', 'Maakt niet uit'] },
+          { id: 3, level: 'KB II', question: 'Welke voorrangsregel geldt er als twee zeilboten elkaar kruisen met het zeil over een verschillende boeg?', answer: 'Zeil over bakboord gaat voor zeil over stuurboord.', category: 'REGELS', distractors: ['Zeil over stuurboord gaat voor zeil over bakboord', 'De loefwaartse boot gaat voor', 'De boot die van rechts komt gaat voor'] },
+          { id: 4, level: 'KB II', question: 'Wie moet er wijken als een zeilboot en een motorboot elkaar op kruisende koers naderen?', answer: 'De motorboot moet wijken (klein motorschip wijkt voor zeilboot).', category: 'REGELS', distractors: ['De zeilboot moet wijken', 'Degene die van links komt moet wijken', 'Degene die het snelst vaart moet wijken'] },
+          { id: 5, level: 'KB II', question: 'Welke term wordt gebruikt voor de zijde van de boot waar de wind vandaan komt?', answer: 'Hogerwal (of de hoge kant/loefzijde).', category: 'TERMINOLOGIE', distractors: ['Lagerwal', 'Lijzijde', 'Benedenwinds'] },
+          { id: 6, level: 'KB II', question: 'Wat betekent the term "loefgierig" bij een zeilboot?', answer: 'Dat de boot de neiging heeft om automatisch naar de wind toe te draaien.', category: 'TERMINOLOGIE', distractors: ['De neiging heeft van de wind af te draaien', 'De neiging heeft snel stil te liggen', 'De neiging heeft te hellen'] },
+          { id: 7, level: 'KB II', question: 'Aan welke zijde van de vaarweg staan de rode tonnen als je stroomafwaarts vaart?', answer: 'Aan stuurboordzijde (rechts).', category: 'BETONNING', distractors: ['Aan bakboordzijde (links)', 'In het midden van de vaargeul', 'Dat is afhankelijk van de bron'] },
+          { id: 8, level: 'KB II', question: 'Welke verlichting moet een klein motorschip \'s nachts minimaal voeren?', answer: 'Boordlichten (rood/groen) en een wit toplicht (of wit rondom schijnend licht).', category: 'VERLICHTING', distractors: ['Alleen een wit rondom schijnend licht', 'Boordlichten en een wit heklicht', 'Een geel flikkerlicht'] },
+          { id: 9, level: 'KB II', question: 'Wat betekent het geluidssein van één korte stoot?', answer: 'Ik ga stuurboord uit.', category: 'GELUIDSSEINEN', distractors: ['Ik ga bakboord uit', 'Ik keer over bakboord', 'Ik keer over stuurboord'] },
+          { id: 10, level: 'KB II', question: 'Met welke knoop maak je de boot vast aan een paal of ring?', answer: 'De mastworp.', category: 'KNOPEN', distractors: ['De paalsteek', 'De schootsteek', 'De reefsteek'] },
+          { id: 11, level: 'KB II', question: 'Wat is the betekenis van een bord met een rode rand en een horizontale rode en witte baan?', answer: 'In-, uit- of doorvaren verboden.', category: 'BORDEN', distractors: ['Verboden stil te liggen', 'Verboden te meren', 'Einde van alle verboden'] },
+          { id: 12, level: 'KB II', question: 'Wie heeft er voorrang op een kruising tussen een hoofdvaarwater en een nevenvaarwater?', answer: 'Het schip op het hoofdvaarwater.', category: 'REGELS', distractors: ['Het schip op het nevenvaarwater', 'Het schip dat van rechts komt', 'Het grootste schip'] },
+          { id: 13, level: 'KB II', question: 'Hoe noem je het ophalen van de zeilen in zeemanstaal?', answer: 'Hijsen.', category: 'TERMINOLOGIE', distractors: ['Strijken', 'Vieren', 'Aanhalen'] },
+          { id: 14, level: 'KB II', question: 'Welke manoeuvre gebruik je om aan te leggen aan hogerwal waarbij je de zeilen viert om snelheid te minderen?', answer: 'Een sliplanding.', category: 'MANOEUVRES', distractors: ['Een opschieter', 'Een gijp', 'Voor top en takel varen'] },
+          { id: 15, level: 'KB II', question: 'Wat betekent het commando "ree" tijdens het zeilen?', answer: 'Het commando dat je gaat wenden (overstag gaan).', category: 'MANOEUVRES', distractors: ['Het commando om de zeilen te hijsen', 'Het commando om te gijpen', 'Het commando om de fok los te laten'] },
+          { id: 16, level: 'KB II', question: 'Welke kleur licht heeft het boordlicht aan stuurboordzijde?', answer: 'Groen.', category: 'VERLICHTING', distractors: ['Rood', 'Wit', 'Geel'] },
+          { id: 17, level: 'KB II', question: 'Wat moet een oplopend schip altijd doen ten opzichte van het opgelopen schip?', answer: 'De oploper moet wijken voor het opgelopen schip.', category: 'REGELS', distractors: ['Het opgelopen schip moet wijken', 'Beide schepen moeten naar stuurboord uitwijken', 'De oploper heeft altijd voorrang'] },
+          { id: 18, level: 'KB II', question: 'Wat is de functie van de \'hoge kant\' tijdens het zeilen?', answer: 'Het tegengaan van het hellen van de boot (gewicht verplaatsen).', category: 'TERMINOLOGIE', distractors: ['Het vangen van meer wind', 'Het makkelijker kunnen sturen', 'Het voorkomen van verlijeren'] },
+          { id: 19, level: 'KB II', question: 'Hoe heet het onderdeel waarmee je het grootzeil hijst?', answer: 'De grootzeilval (of piekenval/klauwval).', category: 'ONDERDELEN', distractors: ['De grootschoot', 'De dirk', 'De voorstag'] },
+          { id: 20, level: 'KB II', question: 'Wat betekent het als een zeilboot "over bakboord" vaart?', answer: 'Dat het grootzeil aan de bakboordzijde staat (wind van stuurboord).', category: 'TERMINOLOGIE', distractors: ['Dat de boot naar bakboord stuurt', 'Dat de wind van bakboord komt', 'Dat de boot aan de bakboordwal vaart'] },
+          { id: 21, level: 'KB II', question: 'Wat is het verschil tussen oploeven en afvallen?', answer: 'Oploeven is naar de wind toe sturen, afvallen is van de wind af sturen.', category: 'TERMINOLOGIE', distractors: ['Oploeven is snelheid maken, afvallen is remmen', 'Oploeven is zeil vieren, afvallen is zeil aanhalen', 'Er is geen verschil'] },
+          { id: 22, level: 'KB II', question: 'Welke knoop gebruik je om twee lijnen van ongelijke dikte aan elkaar te verbinden?', answer: 'De schootsteek.', category: 'KNOPEN', distractors: ['De reefsteek', 'De mastworp', 'De achtknoop'] },
+          { id: 23, level: 'KB II', question: 'Wat betekent het bord met de letter P erop met een streep erdoor?', answer: 'Verboden stil te liggen (verboden te meren).', category: 'BORDEN', distractors: ['Verboden te ankeren', 'Verboden te parkeren', 'Einde parkeerzone'] },
+          { id: 24, level: 'KB II', question: 'Wat moet je doen als je een schip ziet met een blauw bord en een wit flikkerlicht?', answer: 'Het schip aan stuurboordzijde passeren (in plaats van bakboord).', category: 'REGELS', distractors: ['Het schip aan bakboordzijde passeren', 'Onmiddellijk vaart minderen', 'Het schip voorrang verlenen'] },
+          { id: 25, level: 'KB II', question: 'Hoeveel ruimte moet je minimaal houden ten opzichte van een zwemmer?', answer: 'Voldoende afstand; zwemmen is verboden in vaargeulen en bij bruggen.', category: 'REGELS', distractors: ['5 meter', '10 meter', '20 meter'] },
+          { id: 26, level: 'KB II', question: 'Welke koers vaar je als de wind recht van achteren komt?', answer: 'Voor de wind.', category: 'KOERSEN', distractors: ['Ruime wind', 'Halve wind', 'Aan de wind'] },
+          { id: 27, level: 'KB II', question: 'Wat is the betekenis van het bord met het getal 6 in een rode rand?', answer: 'Beperkte doorvaarthoogte (6 meter).', category: 'BORDEN', distractors: ['Beperkte waterdiepte (6 meter)', 'Beperkte breedte (6 meter)', 'Maximale snelheid 6 km/u'] },
+          { id: 28, level: 'KB II', question: 'Wie wijkt er als twee zeilboten met het zeil over dezelfde boeg varen?', answer: 'De boot aan loef wijkt voor de boot aan lij.', category: 'REGELS', distractors: ['De boot aan lij wijkt voor de boot aan loef', 'De kleinste boot wijkt', 'De boot die van links komt wijkt'] },
+          { id: 29, level: 'KB II', question: 'Wat is de functie van een stootwil?', answer: 'Het beschermen van de boot bij het aanleggen of "dubbelliggen".', category: 'ONDERDELEN', distractors: ['Het sturen van de boot', 'Het hijsen van de zeilen', 'Het meten van de waterdiepte'] },
+          { id: 30, level: 'KB II', question: 'Hoe noem je de houten platen op de bodem van de lelievlet?', answer: 'De buikdenning (of vlonders).', category: 'ONDERDELEN', distractors: ['De bankjes', 'De spanten', 'De doften'] },
+          { id: 31, level: 'KB II', question: 'Wat betekent het begrip "hogerwal"?', answer: 'De wal waar de wind vandaan komt.', category: 'TERMINOLOGIE', distractors: ['De wal waar de wind naar toe gaat', 'De wal waar de wind langs waait', 'De diepste kant van het water'] },
+          { id: 32, level: 'KB II', question: 'Welke manoeuvre voer je uit om de zeilen naar de andere kant te brengen terwijl je voor de wind vaart?', answer: 'Gijpen.', category: 'MANOEUVRES', distractors: ['Wenden', 'Overstag gaan', 'Oploeven'] },
+          { id: 33, level: 'KB II', question: 'Wat betekent het als de zeilen gaan "killen"?', answer: 'Dat de zeilen gaan tegenbollen aan de voorzijde (te hoog aan de wind).', category: 'TERMINOLOGIE', distractors: ['Dat de zeilen kapot gaan', 'Dat de zeilen maximaal wind vangen', 'Dat de boot gaat omslaan'] },
+          { id: 34, level: 'KB II', question: 'Welke kleur heeft de betonning aan bakboordzijde als je stroomafwaarts vaart?', answer: 'Groen.', category: 'BETONNING', distractors: ['Rood', 'Geel', 'Zwart'] },
+          { id: 35, level: 'KB II', question: 'Wat is het lateraal punt van een zeilboot?', answer: 'Het middelpunt van het zijdelings oppervlak onder water (draaipunt).', category: 'STABILITEIT', distractors: ['Het zwaartepunt van de boot', 'Het punt waar de wind het zeil raakt', 'De bovenkant van de mast'] },
+          { id: 36, level: 'KB II', question: 'Mag je aanleggen aan een verkeersteken zoals een ton of boei?', answer: 'Nee, dit is verboden.', category: 'REGELS', distractors: ['Ja, in noodgevallen', 'Ja, als er geen andere plek is', 'Alleen voor kleine schepen'] },
+          { id: 37, level: 'KB II', question: 'Wat betekent het geluidssein van twee korte stoten?', answer: 'Ik ga bakboord uit.', category: 'GELUIDSSEINEN', distractors: ['Ik ga stuurboord uit', 'Ik keer over bakboord', 'Ik sla achteruit'] },
+          { id: 38, level: 'KB II', question: 'Hoe heet the lijn waarmee je de stand van de fok regelt?', answer: 'De fokkenschoot.', category: 'ONDERDELEN', distractors: ['De fokkenval', 'De grootschoot', 'De voorstag'] },
+          { id: 39, level: 'KB II', question: 'Wat moet je doen als je een brug nadert die bediend moet worden?', answer: 'Wachten op de wachtplaats (niet rondjes varen).', category: 'REGELS', distractors: ['Rondjes blijven varen voor de brug', 'Zo dicht mogelijk bij de brug gaan liggen', 'Toeteren totdat de brug open gaat'] },
+          { id: 40, level: 'KB II', question: 'Welk schip gaat voor: een roeiboot of een motorboot?', answer: 'De roeiboot (spierkracht gaat voor motor).', category: 'REGELS', distractors: ['De motorboot', 'Degene die van rechts komt', 'Het grootste schip'] },
+          { id: 41, level: 'KB III', question: 'Wat gebeurt er met de stabiliteit als het zwaartepunt van de boot voorbij het drukkingspunt draait?', answer: 'De boot slaat om (het oprichtend koppel wordt te klein/negatief).', category: 'STABILITEIT', distractors: ['De boot wordt stabieler', 'De boot gaat sneller varen', 'Er gebeurt niets'] },
+          { id: 42, level: 'KB III', question: 'Welke lichten voert een groot zeilschip (langer dan 20 meter) \'s nachts?', answer: 'Twee rondom schijnende toplichten: Rood boven Groen (+ boord/heklicht).', category: 'VERLICHTING', distractors: ['Twee witte toplichten', 'Groen boven Rood', 'Alleen boordlichten'] },
+          { id: 43, level: 'KB III', question: 'Wat is het verschil tussen ware wind en schijnbare wind?', answer: 'Schijnbare wind is de optelsom van ware wind en vaartwind.', category: 'METEO', distractors: ['Er is geen verschil', 'Ware wind is de wind die je voelt', 'Schijnbare wind is altijd sterker'] },
+          { id: 44, level: 'KB III', question: 'Wat betekent het als de wind "ruimt"?', answer: 'De wind draait met de klok mee (naar rechts).', category: 'METEO', distractors: ['De wind draait tegen de klok in (naar links)', 'De wind wordt sterker', 'De wind wordt zwakker'] },
+          { id: 45, level: 'KB III', question: 'Welk dagteken voert een sleepboot die een grote sleep trekt?', answer: 'Een geel-zwart-witte cilinder (sleep voert gele bol).', category: 'SLEPEN', distractors: ['Een zwarte kegel', 'Een zwarte bol', 'Een gele ruit'] },
+          { id: 46, level: 'KB III', question: 'Wat betekent het geluidssein "reeks zeer korte stoten" op het water?', answer: 'Gevaar voor aanvaring (of "blijf weg").', category: 'GELUIDSSEINEN', distractors: ['Ik ga bakboord uit', 'Attentiesein', 'Noodsein'] },
+          { id: 47, level: 'KB III', question: 'Hoe herken je \'s nachts een vrijvarende veerpont aan de verlichting?', answer: 'Aan de lichtencombinatie Groen-Wit (boven elkaar).', category: 'VERLICHTING', distractors: ['Rood-Wit', 'Geel-Geel', 'Wit-Wit'] },
+          { id: 48, level: 'KB III', question: 'Wie heeft voorrang bij een engte als een stroomafwaarts en een stroomopwaarts schip elkaar naderen?', answer: 'Het schip dat stroomafwaarts vaart gaat voor.', category: 'REGELS', distractors: ['Het schip dat stroomopwaarts vaart gaat voor', 'Het kleinste schip gaat voor', 'Degene die de engte het dichtst genaderd is'] },
+          { id: 49, level: 'KB III', question: 'Wat is the functie van de \'dode hoek\' bij een groot vrachtschip?', answer: 'Het gebied voor de boeg dat de schipper niet kan zien.', category: 'REGELS', distractors: ['De achterkant van het schip', 'De zijkant waar de schipper niet kijkt', 'Een plek waar je veilig kunt varen'] },
+          { id: 50, level: 'KB III', question: 'Welke manoeuvre voer je uit bij een "Man Overboord" situatie volgens de CWO-eisen?', answer: 'Afvallen, stukje doorvaren, oploeven, overstag, aan loefzijde binnenhalen.', category: 'MANOEUVRES', distractors: ['Direct overstag gaan', 'Gijpen en terugvaren', 'Stoppen en wachten'] },
+          { id: 51, level: 'KB III', question: 'Wat is het specifieke nadeel van een Danforthanker bij het ophalen?', answer: 'Het kan zich zo diep ingraven dat het moeilijk op te halen is.', category: 'ANKEREN', distractors: ['Het is te zwaar', 'Het houdt niet in zachte grond', 'Het neemt te veel ruimte in beslag'] },
+          { id: 52, level: 'KB III', question: 'Hoe voer je een "achtergrondpeiling" uit om te controleren of je anker houdt?', answer: 'Door twee vaste punten op de wal op één lijn te houden (in transito).', category: 'ANKEREN', distractors: ['Door naar de ankerlijn te kijken', 'Door de diepte te meten', 'Door op het kompas te kijken'] },
+          { id: 53, level: 'KB III', question: 'Wat betekent een bord met twee gele ruiten boven elkaar bij een brug?', answer: 'Doorvaart toegestaan, maar tegenliggende doorvaart verboden.', category: 'BORDEN', distractors: ['Doorvaart voor beide kanten toegestaan', 'Doorvaart verboden', 'Brug is buiten bedrijf'] },
+          { id: 54, level: 'KB III', question: 'Welke lichten toont een snel motorschip tijdens de vaart?', answer: 'Twee krachtige gele flikkerlichten.', category: 'VERLICHTING', distractors: ['Twee witte toplichten', 'Een blauw flikkerlicht', 'Rood-Groen-Wit'] },
+          { id: 55, level: 'KB III', question: 'Wat is "gieren" tijdens het slepen van een vlet?', answer: 'Het heen en weer gaan van de gesleepte boot achter de sleepboot.', category: 'SLEPEN', distractors: ['Het maken van te veel snelheid', 'Het maken van hinderlijke golfslag', 'Het omslaan van de boot'] },
+          { id: 56, level: 'KB III', question: 'Hoe voorkom je gieren bij de gesleepte boot?', answer: 'Door te slepen met een kruislijn of sleepoog op achterdek.', category: 'SLEPEN', distractors: ['Door sneller te varen', 'Door het zwaard naar beneden te doen', 'Door meer afstand te houden'] },
+          { id: 57, level: 'KB III', question: 'Wat is het effect van het verplaatsen van het zeilpunt naar achteren op de bestuurbaarheid?', answer: 'De boot wordt loefgieriger.', category: 'STABILITEIT', distractors: ['De boot wordt lijgieriger', 'De boot wordt stabieler', 'De boot gaat sneller varen'] },
+          { id: 58, level: 'KB III', question: 'Welk sein geef je bij mist als zeilschip?', answer: 'Eén lange stoot per minuut (zelfde als motorschip in tekst).', category: 'GELUIDSSEINEN', distractors: ['Reeks zeer korte stoten', 'Vier korte stoten', 'Geen sein'] },
+          { id: 59, level: 'KB III', question: 'Wat betekent het bord met de tekst "sport" eronder?', answer: 'Dat kleine schepen (sport) zijn toegestaan waar een verbod geldt.', category: 'BORDEN', distractors: ['Dat er een wedstrijd bezig is', 'Dat je hier snel mag varen', 'Dat zwemmen hier is toegestaan'] },
+          { id: 60, level: 'KB III', question: 'Welke kleur en vorm hebben de toptekens van een west-kardinale ton?', answer: 'Twee kegels met punten naar elkaar toe, geel-zwart-geel.', category: 'BETONNING', distractors: ['Twee kegels met punten van elkaar af', 'Twee kegels met punten omhoog', 'Twee kegels met punten omlaag'] },
+          { id: 61, level: 'KB III', question: 'Wat betekent een rood bord bij een geankerd schip?', answer: 'Dat de doorvaart verboden is aan die zijde.', category: 'BORDEN', distractors: ['Dat de doorvaart vrij is', 'Dat er gevaarlijke stoffen aan boord zijn', 'Dat het schip gezonken is'] },
+          { id: 62, level: 'KB III', question: 'Wat is een "opschieter" als aanlegmanoeuvre?', answer: 'Recht tegen de wind in varen om snelheid te verliezen bij aankomst.', category: 'MANOEUVRES', distractors: ['Een sliplanding', 'Een gijp', 'Wenden'] },
+          { id: 63, level: 'KB III', question: 'Hoe leg je veilig aan aan lagerwal als de wal onbereikbaar is door stenen?', answer: 'Door te ankeren.', category: 'ANKEREN', distractors: ['Door met geweld tegen de wal te varen', 'Door de zeilen te strijken en te wachten', 'Door hulp te vragen'] },
+          { id: 64, level: 'KB III', question: 'Wat is het drukkingspunt bij de stabiliteitstheorie?', answer: 'Het punt waar de opwaartse kracht van het water aangrijpt.', category: 'STABILITEIT', distractors: ['Het zwaartepunt van de boot', 'Het punt waar de wind het zeil raakt', 'De onderkant van de kiel'] },
+          { id: 65, level: 'KB III', question: 'Welke verlichting voert een groot motorschip (>50m) \'s nachts?', answer: 'Boordlichten, heklicht en twee toplichten.', category: 'VERLICHTING', distractors: ['Alleen boordlichten', 'Eén toplicht en boordlichten', 'Drie witte toplichten'] },
+          { id: 66, level: 'KB III', question: 'Wat betekent het geluidssein "lang-kort-lang"?', answer: 'Attentiesein (bijv. bij naderen onoverzichtelijke bocht).', category: 'GELUIDSSEINEN', distractors: ['Ik ga naar stuurboord', 'Ik keer over bakboord', 'Verzoek bediening brug'] },
+          { id: 67, level: 'KB III', question: 'Wat is het gevaar van "op gelijke hoogte varen" in nauw vaarwater?', answer: 'Je belemmert de doorgang en risico op zuigende werking.', category: 'REGELS', distractors: ['Je gaat te langzaam', 'Je verliest de wind', 'Er is geen gevaar'] },
+          { id: 68, level: 'KB III', question: 'Wat doe je als je tijdens het ankeren merkt dat de boot begint te krabben?', answer: 'Meer ankerlijn steken (vieren).', category: 'ANKEREN', distractors: ['De ankerlijn strakker trekken', 'Het anker direct ophalen', 'De motor aanzetten'] },
+          { id: 69, level: 'KB III', question: 'Welke voorrangsregel geldt er voor een schip dat het hoofdvaarwater opvaart vanuit een nevenvaarwater?', answer: 'Het schip op het hoofdvaarwater heeft voorrang.', category: 'REGELS', distractors: ['Het schip dat het hoofdvaarwater opvaart heeft voorrang', 'Degene die van rechts komt heeft voorrang', 'Groot gaat voor klein'] },
+          { id: 70, level: 'KB III', question: 'Wat is the betekenis van het bord "verboden hinderlijke golfslag te verooraken"?', answer: 'Een bord met rood-wit-rode horizontale banen.', category: 'BORDEN', distractors: ['Een bord met een golf en een streep erdoor', 'Een blauw bord met witte golven', 'Een geel bord'] },
+          { id: 71, level: 'KB III', question: 'Hoe heet het zeilpunt van alle zeilen samen?', answer: 'Het zeilpunt (K).', category: 'STABILITEIT', distractors: ['Het lateraal punt', 'Het zwaartepunt', 'Het drukkingspunt'] },
+          { id: 72, level: 'KB III', question: 'Wat is een torenzeil?', answer: 'Een driehoekig grootzeil (in tegenstelling tot gaffelzeil).', category: 'ONDERDELEN', distractors: ['Een vierkant zeil', 'Een zeil met een gaffel', 'Een zeil zonder giek'] },
+          { id: 73, level: 'KB III', question: 'Wat is het verschil in loefgierigheid tussen een grootzeil en een fok?', answer: 'Grootzeil maakt loefgierig, fok maakt lijgierig.', category: 'STABILITEIT', distractors: ['Grootzeil maakt lijgierig, fok maakt loefgierig', 'Beide maken loefgierig', 'Beide maken lijgierig'] },
+          { id: 74, level: 'KB III', question: 'Wat is "remmend steken" bij het ankeren?', answer: 'De ankerlijn langzaam vieren terwijl de boot achteruit deinst.', category: 'ANKEREN', distractors: ['Het anker met een ruk vastzetten', 'De ankerlijn heel strak houden', 'Het anker laten vallen terwijl de boot vooruit vaart'] },
+          { id: 75, level: 'KB III', question: 'Welke zijde van de betonning houd je aan als je "betond vaarwater" verlaat?', answer: 'Dit wordt aangegeven door de kardinale betonning.', category: 'BETONNING', distractors: ['Altijd de rode kant', 'Altijd de groene kant', 'Dat maakt niet uit'] },
+          { id: 76, level: 'KB III', question: 'Wat betekent een sein met een vlag en een bol eronder?', answer: 'Noodsein.', category: 'GELUIDSSEINEN', distractors: ['Attentiesein', 'Ik ga keren', 'Ik heb hulp nodig bij het slepen'] },
+          { id: 77, level: 'KB III', question: 'Wat is het effect van een windvlaag op de schijnbare windrichting?', answer: 'De schijnbare wind ruimt (komt schuiner van voren in).', category: 'METEO', distractors: ['De schijnbare wind krimpt', 'De schijnbare wind blijft gelijk', 'De schijnbare wind valt weg'] },
+          { id: 78, level: 'KB III', question: 'Wanneer mag je de Nederlandse vlag voeren?', answer: 'Tussen zonsopgang en zonsondergang.', category: 'REGELS', distractors: ['Alleen op zondag', 'De hele dag en nacht', 'Alleen tijdens wedstrijden'] },
+          { id: 79, level: 'KB III', question: 'Wat is een "aanvaringspeiling"?', answer: 'Een peiling waarbij de hoek t.o.v. een ander schip niet verandert.', category: 'REGELS', distractors: ['Een peiling om te zien hoe hard je vaart', 'Een peiling op de horizon', 'Een peiling om de diepte te meten'] },
+          { id: 80, level: 'KB III', question: 'Wat is the betekenis van een bord met een rode en groene driehoek bij een brugopening?', answer: 'Verboden buiten de aangegeven begrenzing te varen (vaar tussen de punten).', category: 'BORDEN', distractors: ['Doorvaart toegestaan voor alle schepen', 'Brug wordt niet bediend', 'Alleen voor zeilschepen'] },
+        ];
+
+        // --- COMPONENTS ---
+
+        const Icon = ({ name, size = 24, className = "" }) => {
+            useEffect(() => {
+                lucide.createIcons();
+            }, [name]);
+            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+        };
+
+        const WaveBackground = () => (
+            <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-20">
+                <div className="absolute bottom-0 left-0 right-0 h-64 text-blue-400 animate-wave w-[200%]">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full fill-current">
+                        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z"></path>
+                    </svg>
+                </div>
+            </div>
+        );
+
+        function App() {
+            const [state, setState] = useState('START');
+            const [level, setLevel] = useState(null);
+            const [currentQuestions, setCurrentQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [isAnswered, setIsAnswered] = useState(false);
+
+            const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
+
+            const startQuiz = (selectedLevel) => {
+                setLevel(selectedLevel);
+                
+                const historyKey = `seen_questions_${selectedLevel}`;
+                const seenIdsRaw = localStorage.getItem(historyKey);
+                let seenIds = seenIdsRaw ? JSON.parse(seenIdsRaw) : [];
+
+                let available = questions.filter(q => q.level === selectedLevel && !seenIds.includes(q.id));
+                
+                if (available.length < 3) {
+                    seenIds = [];
+                    available = questions.filter(q => q.level === selectedLevel);
+                }
+
+                const randomThree = shuffle(available).slice(0, 3);
+                const newSeenIds = [...seenIds, ...randomThree.map(q => q.id)];
+                localStorage.setItem(historyKey, JSON.stringify(newSeenIds));
+                
+                const quizData = randomThree.map(q => {
+                    let distractors = [];
+                    if (q.distractors && q.distractors.length >= 3) {
+                        distractors = q.distractors.slice(0, 3);
+                    } else {
+                        let categoryAnswers = questions
+                            .filter(other => other.category === q.category && other.id !== q.id)
+                            .map(other => other.answer);
+                        
+                        if (categoryAnswers.length < 3) {
+                            const levelAnswers = questions
+                                .filter(other => other.level === q.level && other.id !== q.id && !categoryAnswers.includes(other.answer))
+                                .map(other => other.answer);
+                            categoryAnswers = [...categoryAnswers, ...shuffle(levelAnswers)];
+                        }
+                        distractors = shuffle(Array.from(new Set(categoryAnswers))).slice(0, 3);
+                    }
+
+                    return {
+                        ...q,
+                        options: shuffle([q.answer, ...distractors])
+                    };
+                });
+
+                setCurrentQuestions(quizData);
+                setCurrentIndex(0);
+                setScore(0);
+                setSelectedAnswer(null);
+                setIsAnswered(false);
+                setState('QUIZ');
+            };
+
+            const handleAnswer = (answer) => {
+                if (isAnswered) return;
+                setSelectedAnswer(answer);
+                setIsAnswered(true);
+                if (answer === currentQuestions[currentIndex].answer) {
+                    setScore(prev => prev + 1);
+                }
+            };
+
+            const nextQuestion = () => {
+                if (currentIndex < currentQuestions.length - 1) {
+                    setCurrentIndex(prev => prev + 1);
+                    setSelectedAnswer(null);
+                    setIsAnswered(false);
+                } else {
+                    setState('RESULTS');
+                }
+            };
+
+            const reset = () => {
+                setState('START');
+                setLevel(null);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#f0f4f8] text-slate-900 font-sans relative overflow-hidden">
+                    <WaveBackground />
+                    
+                    <div className="max-w-2xl mx-auto px-4 py-12 relative z-10">
+                        <header className="text-center mb-12">
+                            <div className="inline-flex items-center justify-center w-20 h-20 bg-[#003366] text-white rounded-full shadow-2xl mb-6 border-4 border-white">
+                                <Icon name="anchor" size={40} />
+                            </div>
+                            <h1 className="text-5xl font-black tracking-tighter text-[#003366] mb-2 uppercase italic">
+                                CWO Kielboot Quiz
+                            </h1>
+                            <div className="flex items-center justify-center gap-2 text-blue-600 font-bold uppercase tracking-[0.2em] text-xs">
+                                <Icon name="waves" size={16} />
+                                <span>Navigeer door de theorie</span>
+                                <Icon name="waves" size={16} />
+                            </div>
+                        </header>
+
+                        <main>
+                            {state === 'START' && (
+                                <div className="space-y-6">
+                                    <div className="bg-white/80 backdrop-blur-md p-10 rounded-[2rem] shadow-xl border border-white/50 relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-blue-600 to-blue-400"></div>
+                                        <h2 className="text-2xl font-bold mb-8 text-center text-[#003366]">Kies je CWO Niveau</h2>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                            <button onClick={() => startQuiz('KB II')} className="group relative flex flex-col items-center p-8 bg-white hover:bg-blue-600 border-2 border-blue-100 hover:border-blue-600 rounded-2xl transition-all duration-500 shadow-sm">
+                                                <div className="w-16 h-16 bg-blue-50 group-hover:bg-white/20 rounded-full flex items-center justify-center mb-4 transition-colors">
+                                                    <Icon name="ship" size={32} className="text-blue-600 group-hover:text-white" />
+                                                </div>
+                                                <span className="font-black text-xl text-[#003366] group-hover:text-white">Kielboot 2</span>
+                                                <span className="text-[10px] text-slate-400 group-hover:text-blue-100 mt-2 uppercase tracking-widest font-bold">Basisvaardigheden</span>
+                                            </button>
+                                            <button onClick={() => startQuiz('KB III')} className="group relative flex flex-col items-center p-8 bg-white hover:bg-blue-600 border-2 border-blue-100 hover:border-blue-600 rounded-2xl transition-all duration-500 shadow-sm">
+                                                <div className="w-16 h-16 bg-blue-50 group-hover:bg-white/20 rounded-full flex items-center justify-center mb-4 transition-colors">
+                                                    <Icon name="anchor" size={32} className="text-blue-600 group-hover:text-white" />
+                                                </div>
+                                                <span className="font-black text-xl text-[#003366] group-hover:text-white">Kielboot 3</span>
+                                                <span className="text-[10px] text-slate-400 group-hover:text-blue-100 mt-2 uppercase tracking-widest font-bold">Gevorderd & Theorie</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-center gap-4 text-slate-400">
+                                        <div className="h-px bg-slate-200 flex-1"></div>
+                                        <p className="text-[10px] uppercase tracking-[0.3em] font-bold">3 willekeurige vragen per sessie</p>
+                                        <div className="h-px bg-slate-200 flex-1"></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {state === 'QUIZ' && currentQuestions[currentIndex] && (
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-end px-4">
+                                        <div>
+                                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] block mb-1">Niveau</span>
+                                            <span className="text-lg font-black text-[#003366]">{level}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Voortgang</span>
+                                            <div className="flex gap-1">
+                                                {[0, 1, 2].map(i => (
+                                                    <div key={i} className={`h-1.5 w-8 rounded-full transition-colors duration-500 ${i <= currentIndex ? 'bg-blue-600' : 'bg-slate-200'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-blue-50 relative">
+                                        <div className="absolute -top-4 -left-4 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-black shadow-lg">
+                                            {currentIndex + 1}
+                                        </div>
+                                        <h3 className="text-2xl font-bold leading-tight mb-10 text-[#003366]">
+                                            {currentQuestions[currentIndex].question}
+                                        </h3>
+                                        <div className="space-y-4">
+                                            {currentQuestions[currentIndex].options.map((option, idx) => {
+                                                const isCorrect = option === currentQuestions[currentIndex].answer;
+                                                const isSelected = option === selectedAnswer;
+                                                let buttonClass = "w-full text-left p-5 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between group ";
+                                                if (!isAnswered) {
+                                                    buttonClass += "border-slate-100 hover:border-blue-600 hover:bg-blue-50 text-slate-700 hover:translate-x-2";
+                                                } else {
+                                                    if (isCorrect) buttonClass += "border-green-500 bg-green-50 text-green-700 ring-4 ring-green-100";
+                                                    else if (isSelected) buttonClass += "border-red-500 bg-red-50 text-red-700 ring-4 ring-red-100";
+                                                    else buttonClass += "border-slate-50 text-slate-300 opacity-40";
+                                                }
+                                                return (
+                                                    <button key={idx} disabled={isAnswered} onClick={() => handleAnswer(option)} className={buttonClass}>
+                                                        <span className="font-medium">{option}</span>
+                                                        {isAnswered && isCorrect && <Icon name="check-circle-2" className="text-green-500 ml-4" />}
+                                                        {isAnswered && isSelected && !isCorrect && <Icon name="x-circle" className="text-red-500 ml-4" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {isAnswered && (
+                                        <button onClick={nextQuestion} className="w-full bg-[#003366] text-white py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-900 transition-all flex items-center justify-center gap-3 uppercase tracking-widest">
+                                            {currentIndex === 2 ? 'Resultaten' : 'Volgende Vraag'}
+                                            <Icon name="chevron-right" size={24} />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {state === 'RESULTS' && (
+                                <div className="text-center">
+                                    <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-blue-50 mb-8 relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-2 bg-yellow-400"></div>
+                                        <div className="inline-flex items-center justify-center w-28 h-28 bg-yellow-50 text-yellow-600 rounded-full mb-8 border-4 border-yellow-100">
+                                            <Icon name="trophy" size={56} />
+                                        </div>
+                                        <h2 className="text-4xl font-black mb-2 text-[#003366] uppercase italic">Behouden Vaart!</h2>
+                                        <p className="text-slate-500 mb-6 font-medium">Je hebt <span className="text-blue-600 font-black text-2xl">{score}</span> van de 3 vragen correct.</p>
+                                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-10">
+                                            <p className="text-[#003366] font-bold text-lg leading-snug">
+                                                {score <= 1 && "Helaas, je hebt geen vlag verdiend. Oefen nog even verder!"}
+                                                {score === 2 && "Goed gedaan! Je krijgt 1 vlag voor je team."}
+                                                {score === 3 && (
+                                                    <React.Fragment>
+                                                        Fantastisch! Je krijgt <span className="text-blue-700 underline decoration-2 underline-offset-4">2 vlaggen</span>. 
+                                                        <span className="block mt-2 text-sm font-medium opacity-80 italic">
+                                                            Is alles al veroverd? Dan mag je je vlag wisselen met een vlag van een ander team!
+                                                        </span>
+                                                    </React.Fragment>
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col gap-4">
+                                            <button onClick={() => startQuiz(level)} className="w-full bg-[#003366] text-white py-5 rounded-2xl font-black shadow-xl hover:bg-blue-900 transition-all flex items-center justify-center gap-3 uppercase tracking-widest">
+                                                <Icon name="refresh-ccw" size={22} />
+                                                Opnieuw ({level})
+                                            </button>
+                                            <button onClick={reset} className="w-full bg-slate-100 text-slate-600 py-5 rounded-2xl font-black hover:bg-slate-200 transition-all uppercase tracking-widest text-sm">
+                                                Kies ander niveau
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </main>
+
+                        <footer className="mt-16 text-center">
+                            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/50 backdrop-blur-sm rounded-full border border-white/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                                <Icon name="help-circle" size={14} className="text-blue-400" />
+                                <span>Officiële CWO Kielboot Theorie</span>
+                            </div>
+                        </footer>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
